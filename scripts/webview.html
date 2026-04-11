@@ -111,8 +111,35 @@
     if (!encoded) {
         document.body.innerHTML = '<p style="color:red">No data provided.</p>';
     } else {
-        const data = JSON.parse(atob(encoded));
-        renderUI(data);
+        try {
+            const rawData = JSON.parse(atob(encoded));
+            const data = normalizeData(rawData);
+            renderUI(data);
+        } catch (error) {
+            document.body.innerHTML = `<p style="color:red">Invalid data provided: ${error.message}</p>`;
+        }
+    }
+
+    function safeNumber(value, fallback = 0) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : fallback;
+    }
+
+    function normalizeData(data) {
+        return {
+            targetCalories: safeNumber(data.targetCalories),
+            protein: safeNumber(data.protein),
+            fat: safeNumber(data.fat),
+            carbs: safeNumber(data.carbs),
+            bmr: safeNumber(data.bmr),
+            tdee: safeNumber(data.tdee),
+            meals: {
+                breakfast: data.meals?.breakfast || 'Not available',
+                lunch: data.meals?.lunch || 'Not available',
+                dinner: data.meals?.dinner || 'Not available',
+                snack: data.meals?.snack || 'Not available'
+            }
+        };
     }
 
     function renderUI(data) {
@@ -120,24 +147,30 @@
         const proteinCals = data.protein * 4;
         const fatCals = data.fat * 9;
         const carbCals = data.carbs * 4;
-        const totalCals = proteinCals + fatCals + carbCals;
-        
-        const trace = {
-            labels: ['Protein', 'Fat', 'Carbohydrates'],
-            values: [proteinCals, fatCals, carbCals],
-            type: 'pie',
-            marker: { colors: ['#28a745', '#ffc107', '#17a2b8'] },
-            textinfo: 'label+percent',
-            hoverinfo: 'label+value',
-            textposition: 'auto'
-        };
-        const layout = {
-            title: `Daily Calorie Target: ${data.targetCalories} kcal`,
-            showlegend: true,
-            height: 280,
-            margin: { t: 50, b: 20, l: 20, r: 20 }
-        };
-        Plotly.newPlot('chart', [trace], layout);
+        const values = [proteinCals, fatCals, carbCals];
+        const totalMacroCals = values.reduce((sum, val) => sum + val, 0);
+        const chartDiv = document.getElementById('chart');
+
+        if (totalMacroCals <= 0) {
+            chartDiv.innerHTML = '<p style="color:#6c757d; text-align:center; padding-top:120px;">No macronutrient data available to render the chart.</p>';
+        } else {
+            const trace = {
+                labels: ['Protein', 'Fat', 'Carbohydrates'],
+                values,
+                type: 'pie',
+                marker: { colors: ['#28a745', '#ffc107', '#17a2b8'] },
+                textinfo: 'label+percent',
+                hoverinfo: 'label+value',
+                textposition: 'auto'
+            };
+            const layout = {
+                title: `Daily Calorie Target: ${data.targetCalories} kcal`,
+                showlegend: true,
+                height: 280,
+                margin: { t: 50, b: 20, l: 20, r: 20 }
+            };
+            Plotly.newPlot('chart', [trace], layout);
+        }
 
         // 2. Metrics display
         const metricsDiv = document.getElementById('metrics');
