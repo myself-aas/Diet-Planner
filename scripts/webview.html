@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        h3 {
+            font-size: 1.2rem;
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #6c757d;
+        }
+        .meal-list {
+            list-style: none;
+            padding: 0;
+        }
+        .meal-list li {
+            background: #f1f3f5;
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+        .meal-name {
+            font-weight: bold;
+            color: #495057;
+        }
+        .meal-desc {
+            color: #6c757d;
+        }
+        hr {
+            margin: 16px 0;
+            border: 0;
+            border-top: 1px solid #dee2e6;
+        }
+        .note {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h2>🥗 Personalized Diet Plan</h2>
+        <div id="chart" style="height: 300px;"></div>
+    </div>
+
+    <div class="card">
+        <h3>📊 Your Metrics</h3>
+        <div class="stats-grid" id="metrics"></div>
+    </div>
+
+    <div class="card">
+        <h3>🍽️ Sample Meal Plan</h3>
+        <ul class="meal-list" id="mealPlan"></ul>
+        <div class="note">💡 Adjust portions to fit your calorie target. Stay hydrated and consult a professional for medical conditions.</div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get('data');
+    if (!encoded) {
+        document.body.innerHTML = '<p style="color:red">No data provided.</p>';
+    } else {
+        const data = JSON.parse(atob(encoded));
+        renderUI(data);
+    }
+
+    function renderUI(data) {
+        // 1. Pie chart: calorie distribution by macros
+        const proteinCals = data.protein * 4;
+        const fatCals = data.fat * 9;
+        const carbCals = data.carbs * 4;
+        const totalCals = proteinCals + fatCals + carbCals;
+        
+        const trace = {
+            labels: ['Protein', 'Fat', 'Carbohydrates'],
+            values: [proteinCals, fatCals, carbCals],
+            type: 'pie',
+            marker: { colors: ['#28a745', '#ffc107', '#17a2b8'] },
+            textinfo: 'label+percent',
+            hoverinfo: 'label+value',
+            textposition: 'auto'
+        };
+        const layout = {
+            title: `Daily Calorie Target: ${data.targetCalories} kcal`,
+            showlegend: true,
+            height: 280,
+            margin: { t: 50, b: 20, l: 20, r: 20 }
+        };
+        Plotly.newPlot('chart', [trace], layout);
+
+        // 2. Metrics display
+        const metricsDiv = document.getElementById('metrics');
+        metricsDiv.innerHTML = `
+            <div class="stat-box"><div class="stat-value">${data.targetCalories}</div><div class="stat-label">Daily Calories</div></div>
+            <div class="stat-box"><div class="stat-value">${data.protein}g</div><div class="stat-label">Protein</div></div>
+            <div class="stat-box"><div class="stat-value">${data.fat}g</div><div class="stat-label">Fat</div></div>
+            <div class="stat-box"><div class="stat-value">${data.carbs}g</div><div class="stat-label">Carbs</div></div>
+            <div class="stat-box"><div class="stat-value">${data.bmr}</div><div class="stat-label">BMR (kcal)</div></div>
+            <div class="stat-box"><div class="stat-value">${data.tdee}</div><div class="stat-label">TDEE (kcal)</div></div>
+        `;
+
+        // 3. Meal plan
+        const mealList = document.getElementById('mealPlan');
+        const meals = data.meals;
+        mealList.innerHTML = `
+            <li><span class="meal-name">🍳 Breakfast:</span> <span class="meal-desc">${meals.breakfast}</span></li>
+            <li><span class="meal-name">🥗 Lunch:</span> <span class="meal-desc">${meals.lunch}</span></li>
+            <li><span class="meal-name">🍲 Dinner:</span> <span class="meal-desc">${meals.dinner}</span></li>
+            <li><span class="meal-name">🍎 Snack:</span> <span class="meal-desc">${meals.snack}</span></li>
+        `;
+    }
+</script>
+</body>
+</html>

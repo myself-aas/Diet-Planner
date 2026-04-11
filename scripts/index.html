@@ -1,0 +1,93 @@
+
+
+---
+
+## 2. scripts/index.html (calculation engine)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+</head>
+<body>
+<script>
+    window.ai_edge_gallery_get_result = async function(data) {
+        try {
+            const input = JSON.parse(data);
+            const age = input.age || 30;
+            const weight = input.weight || 70;
+            const height = input.height || 170;
+            const gender = input.gender || "male";
+            const activity = input.activity || "moderate";
+            const goal = input.goal || "maintain";
+
+            // 1. BMR using Mifflin-St Jeor
+            let bmr;
+            if (gender === "male") {
+                bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+            } else {
+                bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+            }
+
+            // 2. Activity multipliers
+            const activityMap = {
+                "sedentary": 1.2,
+                "light": 1.375,
+                "moderate": 1.55,
+                "active": 1.725,
+                "very active": 1.9
+            };
+            const tdee = bmr * (activityMap[activity] || 1.55);
+
+            // 3. Goal adjustment
+            let calorieAdjust = 0;
+            if (goal === "lose") calorieAdjust = -500;
+            else if (goal === "gain") calorieAdjust = 500;
+            const targetCalories = Math.round(tdee + calorieAdjust);
+
+            // 4. Macronutrient ratios (balanced: 30% protein, 25% fat, 45% carbs)
+            const proteinCal = targetCalories * 0.30;
+            const fatCal = targetCalories * 0.25;
+            const carbCal = targetCalories * 0.45;
+            
+            const proteinGrams = Math.round(proteinCal / 4);
+            const fatGrams = Math.round(fatCal / 9);
+            const carbGrams = Math.round(carbCal / 4);
+
+            // 5. Sample meal plan (simple template based on goal)
+            const meals = {
+                breakfast: goal === "lose" ? "Greek yogurt + berries + oats" : (goal === "gain" ? "Omelette (3 eggs) + whole grain toast + avocado" : "Scrambled eggs + spinach + whole wheat bread"),
+                lunch: goal === "lose" ? "Grilled chicken salad + quinoa" : (goal === "gain" ? "Chicken breast + brown rice + lentils + veggies" : "Turkey sandwich + mixed greens"),
+                dinner: goal === "lose" ? "Baked fish + steamed broccoli" : (goal === "gain" ? "Salmon + sweet potato + asparagus" : "Stir-fry tofu + bell peppers + noodles"),
+                snack: goal === "lose" ? "Apple or protein shake" : (goal === "gain" ? "Peanut butter banana smoothie" : "Handful of nuts")
+            };
+
+            // Prepare data for WebView
+            const result = {
+                bmr: Math.round(bmr),
+                tdee: Math.round(tdee),
+                targetCalories: targetCalories,
+                protein: proteinGrams,
+                fat: fatGrams,
+                carbs: carbGrams,
+                meals: meals,
+                goal: goal,
+                activity: activity
+            };
+
+            const encoded = btoa(JSON.stringify(result));
+            return JSON.stringify({
+                result: `Diet plan generated: ${targetCalories} kcal/day.`,
+                webview: {
+                    url: `webview.html?data=${encoded}`,
+                    aspectRatio: 1.5
+                }
+            });
+        } catch (err) {
+            return JSON.stringify({ error: err.message });
+        }
+    };
+</script>
+</body>
+</html>
