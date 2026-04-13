@@ -1,5 +1,5 @@
 ---
-name: diet-plan-designer
+name: Diet-Planner
 description: Generates a personalized diet plan with calorie target, macronutrient split, and sample meals based on user profile.
 author: Ashif Ahmed Shuvo
 version: 1.0.1
